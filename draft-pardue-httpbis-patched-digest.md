@@ -247,6 +247,87 @@ Registry" {{!HTTP=RFC9110}} as shown in the table below:
 
 --- back
 
+# Example of Patched-Digest Usage
+{:numbered="false"}
+
+This section contains a non-normative example of `Patched-Digest` usage for a
+hypothetical PATCH request. A resource located at
+https://www.example.com/file.txt is a plaintext file containing the string: "An
+unexceptional string" followed by a line feed character (0xA).
+
+A client could send a HEAD request to gather information about the status of
+the resource, including its integrity preference for the response:
+
+~~~ http-message
+HEAD /file.txt HTTP/1.1
+Host: www.example.com
+Want-Unencoded-Digest: sha-256=1
+~~~
+
+The server could provide a response the contains both an `ETag` and an
+`Unencoded-Digest`. It is also assumed that the client and server understand
+this resource can be patched (via an out-of-band signal) and so the server
+returns a `Want-Patched-Digest`:
+
+~~~ http-message
+HTTP/1.1 200 Ok
+Content-Type: text/plain
+ETag: "123-a"
+Unencoded-Digest: sha-256=:5Bv3NIx05BPnh0jMph6v1RJ5Q7kl9LKMtQxmvc9+Z7Y=:
+Want-Patched-Digest: sha-256=1
+~~~
+
+The client could make a conditional request to patch the resource and provide a
+`Patched-Digest`. In this hypothetical example, the patch document is applied by
+appending it to the resource, the document value is the string: "can
+become magic" followed by a line feed character (0xA).
+
+~~~ http-message
+PATCH /file.txt HTTP/1.1
+Host: www.example.com
+Content-Type: application/example
+If-Match: "123-a"
+Content-Length: 17
+Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+can become magic
+
+~~~
+
+The server applies the patch document and confirms the result matches the
+`Patched-Digest` value, then returns a success message with a new ETag.
+
+~~~ http-message
+HTTP/1.1 204 No Content
+Content-Location: /file.txt
+Content-Type: text/plain
+ETag: "123-b"
+~~~
+
+If the client attempts to patch again with a mismatching `Patched-Digest`:
+
+~~~ http-message
+PATCH /file.txt HTTP/1.1
+Host: www.example.com
+Content-Type: application/example
+If-Match: "123-b"
+Content-Length: 17
+Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+can become magic
+
+~~~
+
+even though the ETag precondition passes, the server is able to detect a problem
+with the patch operation and return an error response:
+
+~~~ http-message
+HTTP/1.1 400 Bad Request
+Content-Type: text/plain
+
+[description of error]
+~~~
+
 # Acknowledgments
 {:numbered="false"}
 
