@@ -28,7 +28,7 @@ signal server integrity preferences.
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.10.0
+    platformdirs 4.10.1
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
@@ -1055,7 +1055,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Pardue</td>
-<td class="center">Expires 18 January 2027</td>
+<td class="center">Expires 21 January 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1068,12 +1068,12 @@ svg {
 <dd class="internet-draft">draft-pardue-httpbis-patched-digest-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-07-17" class="published">17 July 2026</time>
+<time datetime="2026-07-20" class="published">20 July 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-01-18">18 January 2027</time></dd>
+<dd class="expires"><time datetime="2027-01-21">21 January 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1126,7 +1126,7 @@ signal server integrity preferences.<a href="#section-abstract-1" class="pilcrow
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 18 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 21 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1185,10 +1185,13 @@ signal server integrity preferences.<a href="#section-abstract-1" class="pilcrow
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+            <p id="section-toc.1-1.8.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-example-of-patched-digest-u" class="internal xref">Example of Patched-Digest Usage</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1484,19 +1487,103 @@ Registry" <span>[<a href="#HTTP" class="cite xref">HTTP</a>]</span> as shown in 
 </div>
 </section>
 </div>
-<div id="acknowledgments">
+<div id="example-of-patched-digest-usage">
 <section id="appendix-A">
+      <h2 id="name-example-of-patched-digest-u">
+<a href="#name-example-of-patched-digest-u" class="section-name selfRef">Example of Patched-Digest Usage</a>
+      </h2>
+<p id="appendix-A-1">This section contains a non-normative example of <code>Patched-Digest</code> usage for a
+hypothetical PATCH request. A resource located at
+https://www.example.com/file.txt is a plaintext file containing the string: "An
+unexceptional string" followed by a line feed character (0xA).<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">A client could send a HEAD request to gather information about the status of
+the resource, including its integrity preference for the response:<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-3">
+<pre>
+HEAD /file.txt HTTP/1.1
+Host: www.example.com
+Want-Unencoded-Digest: sha-256=1
+</pre><a href="#appendix-A-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-4">The server could provide a response the contains both an <code>ETag</code> and an
+<code>Unencoded-Digest</code>. It is also assumed that the client and server understand
+this resource can be patched (via an out-of-band signal) and so the server
+returns a <code>Want-Patched-Digest</code>:<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-5">
+<pre>
+HTTP/1.1 200 Ok
+Content-Type: text/plain
+ETag: "123-a"
+Unencoded-Digest: sha-256=:5Bv3NIx05BPnh0jMph6v1RJ5Q7kl9LKMtQxmvc9+Z7Y=:
+Want-Patched-Digest: sha-256=1
+</pre><a href="#appendix-A-5" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-6">The client could make a conditional request to patch the resource and provide a
+<code>Patched-Digest</code>. In this hypothetical example, the patch document is applied by
+appending it to the resource, the document value is the string: "can
+become magic" followed by a line feed character (0xA).<a href="#appendix-A-6" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-7">
+<pre>
+PATCH /file.txt HTTP/1.1
+Host: www.example.com
+Content-Type: application/example
+If-Match: "123-a"
+Content-Length: 17
+Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+can become magic
+
+</pre><a href="#appendix-A-7" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-8">The server applies the patch document and confirms the result matches the
+<code>Patched-Digest</code> value, then returns a success message with a new ETag.<a href="#appendix-A-8" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-9">
+<pre>
+HTTP/1.1 204 No Content
+Content-Location: /file.txt
+Content-Type: text/plain
+ETag: "123-b"
+</pre><a href="#appendix-A-9" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-10">If the client attempts to patch again with a mismatching <code>Patched-Digest</code>:<a href="#appendix-A-10" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-11">
+<pre>
+PATCH /file.txt HTTP/1.1
+Host: www.example.com
+Content-Type: application/example
+If-Match: "123-b"
+Content-Length: 17
+Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+can become magic
+
+</pre><a href="#appendix-A-11" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-12">even though the ETag precondition passes, the server is able to detect a problem
+with the patch operation and return an error response:<a href="#appendix-A-12" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-13">
+<pre>
+HTTP/1.1 400 Bad Request
+Content-Type: text/plain
+
+[description of error]
+</pre><a href="#appendix-A-13" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-B">
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="appendix-A-1">The PATCH integrity capability gap was identified by a discussion with Grant
+<p id="appendix-B-1">The PATCH integrity capability gap was identified by a discussion with Grant
 Gryczan. Roberto Polli provided a reminder that the topic was touched on during
 RFC 9530 development, and provided some early technical input related to the
-design in this document.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+design in this document.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-B">
+<section id="appendix-C">
       <h2 id="name-authors-address">
 <a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
       </h2>

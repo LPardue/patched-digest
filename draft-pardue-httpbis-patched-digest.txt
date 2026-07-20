@@ -3,9 +3,9 @@
 
 
 HTTP                                                           L. Pardue
-Internet-Draft                                              17 July 2026
+Internet-Draft                                              20 July 2026
 Intended status: Standards Track                                        
-Expires: 18 January 2027
+Expires: 21 January 2027
 
 
                           HTTP Patched Digest
@@ -53,7 +53,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 January 2027.
+   This Internet-Draft will expire on 21 January 2027.
 
 Copyright Notice
 
@@ -80,6 +80,7 @@ Table of Contents
    7.  References
      7.1.  Normative References
      7.2.  Informative References
+   Example of Patched-Digest Usage
    Acknowledgments
    Author's Address
 
@@ -333,6 +334,78 @@ Table of Contents
               "Handling Long Lines in Content of Internet-Drafts and
               RFCs", RFC 8792, DOI 10.17487/RFC8792, June 2020,
               <https://www.rfc-editor.org/rfc/rfc8792>.
+
+Example of Patched-Digest Usage
+
+   This section contains a non-normative example of Patched-Digest usage
+   for a hypothetical PATCH request.  A resource located at
+   https://www.example.com/file.txt is a plaintext file containing the
+   string: "An unexceptional string" followed by a line feed character
+   (0xA).
+
+   A client could send a HEAD request to gather information about the
+   status of the resource, including its integrity preference for the
+   response:
+
+   HEAD /file.txt HTTP/1.1
+   Host: www.example.com
+   Want-Unencoded-Digest: sha-256=1
+
+   The server could provide a response the contains both an ETag and an
+   Unencoded-Digest.  It is also assumed that the client and server
+   understand this resource can be patched (via an out-of-band signal)
+   and so the server returns a Want-Patched-Digest:
+
+   HTTP/1.1 200 Ok
+   Content-Type: text/plain
+   ETag: "123-a"
+   Unencoded-Digest: sha-256=:5Bv3NIx05BPnh0jMph6v1RJ5Q7kl9LKMtQxmvc9+Z7Y=:
+   Want-Patched-Digest: sha-256=1
+
+   The client could make a conditional request to patch the resource and
+   provide a Patched-Digest.  In this hypothetical example, the patch
+   document is applied by appending it to the resource, the document
+   value is the string: "can become magic" followed by a line feed
+   character (0xA).
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "123-a"
+   Content-Length: 17
+   Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+   can become magic
+
+   The server applies the patch document and confirms the result matches
+   the Patched-Digest value, then returns a success message with a new
+   ETag.
+
+   HTTP/1.1 204 No Content
+   Content-Location: /file.txt
+   Content-Type: text/plain
+   ETag: "123-b"
+
+   If the client attempts to patch again with a mismatching Patched-
+   Digest:
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "123-b"
+   Content-Length: 17
+   Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+   can become magic
+
+   even though the ETag precondition passes, the server is able to
+   detect a problem with the patch operation and return an error
+   response:
+
+   HTTP/1.1 400 Bad Request
+   Content-Type: text/plain
+
+   [description of error]
 
 Acknowledgments
 
