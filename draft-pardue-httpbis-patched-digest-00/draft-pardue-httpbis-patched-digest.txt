@@ -1,0 +1,420 @@
+
+
+
+
+HTTP                                                           L. Pardue
+Internet-Draft                                              20 July 2026
+Intended status: Standards Track                                        
+Expires: 21 January 2027
+
+
+                          HTTP Patched Digest
+               draft-pardue-httpbis-patched-digest-latest
+
+Abstract
+
+   The PATCH method can be used to apply partial modifications to a
+   resource.  This document defines the Patched-Digest request field,
+   which allows a client to indicate the integrity digest of the
+   modified resource once a PATCH operation is applied.  A server can
+   use the integrity digest to detect an operation failure and return an
+   error.  The Want-Patched-Digest response field is also defined to
+   signal server integrity preferences.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at
+   https://LPardue.github.io/patched-digest/draft-pardue-httpbis-
+   patched-digest.html.  Status information for this document may be
+   found at https://datatracker.ietf.org/doc/draft-pardue-httpbis-
+   patched-digest/.
+
+   Discussion of this document takes place on the HTTP Working Group
+   mailing list (mailto:ietf-http-wg@w3.org), which is archived at
+   https://lists.w3.org/Archives/Public/ietf-http-wg/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/LPardue/patched-digest.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 21 January 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Conventions and Definitions
+   3.  The Patched-Digest Field
+   4.  The Want-Patched-Digest Field
+   5.  Security Considerations
+   6.  IANA Considerations
+   7.  References
+     7.1.  Normative References
+     7.2.  Informative References
+   Example of Patched-Digest Usage
+   Acknowledgments
+   Author's Address
+
+1.  Introduction
+
+   The PATCH method [PATCH] can be used to apply partial modifications
+   to a resource.  A client can indicate the desired precondition of the
+   resource prior to a PATCH operation being applied (Section 2 of
+   [PATCH]).  For example, sending a PATCH request containing an If-
+   Match (Section 13.1.1 of [HTTP]) with a strong ETag (Section 8.8.3 of
+   [HTTP]).
+
+   The following example illustrates a hypothetical PATCH request to
+   apply a patch document to an existing resource with the ETag
+   "e0023aa4e":
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "e0023aa4e"
+   Content-Length: 100
+
+   [description of changes]
+
+   The PATCH operation results in a successful response that indicates
+   the resource has been modified and the new ETag is "e0023aa4f.
+
+   HTTP/1.1 204 No Content
+   Content-Location: /file.txt
+   Content-Type: text/plain
+   ETag: "e0023aa4f"
+
+   To date there have been no means to communicate the client's
+   expectation of the result of a PATCH operation, delaying the ability
+   for both client and server to detect an error.
+
+   While the integrity fields defined in [DIGEST-FIELDS] and
+   [UNENC-DIGEST] can be used by a client to obtain information related
+   to the resource before and/or after a PATCH operation, that cannot be
+   used to communicate an a priori expectation for the result.  For
+   instance, the example request could be augmented to include integrity
+   fields but all of them refer to the patch document itself, not any
+   state of the resource:
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "e0023aa4e"
+   Content-Length: 100
+   Content-Digest: [something]
+   Repr-Digest: [something]
+   Unencoded-Digest: [something]
+
+   [description of changes]
+
+   The earlier example response can be similarly augmented with
+   integrity fields that indicate the state of the resource after
+   modification:
+
+   HTTP/1.1 204 No Content
+   Content-Location: /file.txt
+   Content-Type: text/plain
+   ETag: "e0023aa4f"
+   Repr-Digest: [something]
+   Unencoded-Digest: [something]
+
+   The client might be able to use either Repr-Digest or Unencoded-
+   Digest to detect a problem that occurred during the PATCH operation.
+   However, the server would remain oblivious unless further action were
+   taken by the client to communicate a failure.
+
+   This document defines the Patched-Digest request field, which allows
+   a client to indicate the integrity digest ([DIGEST-FIELDS]) of the
+   modified resource once a PATCH operation is applied.  A server can
+   use the integrity digest to detect an operation failure and return an
+   error response.  Patched-Digest complements other integrity fields
+   but has a much narrower usage scope.
+
+   As is common for integrity fields, the Want-Patched-Digest response
+   field is also defined to signal server integrity preferences.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   This document uses the following terminology from Section 3 of
+   [STRUCTURED-FIELDS] to specify syntax and parsing: Byte Sequence,
+   Dictionary, and Integer.
+
+   The definitions "representation", "selected representation",
+   "representation data", "representation metadata", and "content" in
+   this document are to be interpreted as described in [HTTP].
+
+   This document uses the line folding strategies described in
+   [FOLDING].
+
+   The term "digest" is to be interpreted as described in
+   [DIGEST-FIELDS].
+
+3.  The Patched-Digest Field
+
+   The Patched-Digest HTTP field can be used in requests to communicate
+   an expected digest for the result of applying a PATCH document to a
+   resource.  The digest is calculated using a hashing algorithm applied
+   to the resource's entire selected representation data with no content
+   codings applied (Section 8.4.1 of [HTTP]).
+
+   In the following examples of Patched-Digest fields, the
+   representation data with no content codings applied is: "An
+   unexceptional string" followed by a line feed character (0xA).
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   Patched-Digest: \
+     sha-512=:WjyMuMD9EI/v0RoJchcevbo6lF498VyE9564OgXf+98iJptoSvb1Czo9\
+     uVJu2bVU/tOv90huiMG3+YaMX1kipw==:
+
+   The Dictionary type can be used, for example, to attach multiple
+   digests calculated using different hashing algorithms in order to
+   support a population of endpoints with different or evolving
+   capabilities.  Such an approach could support transitions away from
+   weaker algorithms (see Section 6.6 of [DIGEST-FIELDS]).
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   Patched-Digest: \
+     sha-256=:5Bv3NIx05BPnh0jMph6v1RJ5Q7kl9LKMtQxmvc9+Z7Y=:,\
+     sha-512=:WjyMuMD9EI/v0RoJchcevbo6lF498VyE9564OgXf+98iJptoSvb1Czo9\
+     uVJu2bVU/tOv90huiMG3+YaMX1kipw==:
+
+   A server MAY ignore any or all digests.  Application-specific
+   behavior or local policy MAY set additional constraints on the
+   processing and validation practices of the conveyed digests.
+   Security considerations related to ignoring digests or validating
+   multiple digests are presented in Sections 6.6 and 6.7 of
+   [DIGEST-FIELDS] respectively.  TODO: should we be more strict and
+   recommend returning an error (and maybe point to RFC 5789
+   Section 2.2)?
+
+   A client MAY send a digest without knowing whether the server
+   supports a given hashing algorithm.  A sender MAY send a digest if it
+   knows the recipient will ignore it.  An example is depicted in
+   Appendix C.2 of [DIGEST-FIELDS].
+
+   Patched-Digest can be sent in a trailer section.  In this case,
+   Patched-Digest MAY be merged into the header section; see
+   Section 6.5.1 of [HTTP].
+
+4.  The Want-Patched-Digest Field
+
+   Want-Patched-Digest is an integrity preference field; see Section 4
+   of [DIGEST-FIELDS].  It indicates that the server would like to
+   receive a Patched-Digest with PATCH requests.
+
+   Want-Patched-Digest is only a hint.  Clients can ignore it and send
+   an Patched-Digest field using any algorithm or omit the field
+   entirely.  It is not a protocol error if preferences are ignored.
+   Applications that use Patched-Digest and Want-Patched-Digest can
+   define expectations or constraints that operate in addition to this
+   specification.  Ignored preferences are an application-specific
+   concern.
+
+   Want-Patched-Digest is of type Dictionary where each:
+
+   *  key conveys the hashing algorithm;
+
+   *  value is an Integer (Section 3.3.1 of [STRUCTURED-FIELDS]) that
+      conveys an ascending, relative, weighted preference.  It must be
+      in the range 0 to 10 inclusive. 1 is the least preferred, 10 is
+      the most preferred, and a value of 0 means "not acceptable".
+
+      Each Dictionary value can have zero or more Parameters
+      (Section 3.1.2 of [STRUCTURED-FIELDS]).  This specification does
+      not define any Parameters; future extensions may do so.  Unknown
+      Parameters MUST be ignored.
+
+   Examples:
+
+   Want-Patched-Digest: sha-256=1
+   Want-Patched-Digest: sha-512=3, sha-256=10, unixsum=0
+
+5.  Security Considerations
+
+   All the same considerations documented in [DIGEST-FIELDS] apply.
+
+6.  IANA Considerations
+
+   IANA is asked to update the "Hypertext Transfer Protocol (HTTP) Field
+   Name Registry" [HTTP] as shown in the table below:
+
+   +=====================+===========+=================+===============+
+   | Field Name          | Status    | Structured      | Reference     |
+   |                     |           | Type            |               |
+   +=====================+===========+=================+===============+
+   | Patched-Digest      | permanent | Dictionary      | Section 3 of  |
+   |                     |           |                 | this document |
+   +---------------------+-----------+-----------------+---------------+
+   | Want-Patched-Digest | permanent | Dictionary      | Section 4 of  |
+   |                     |           |                 | this document |
+   +---------------------+-----------+-----------------+---------------+
+
+      Table 1: Hypertext Transfer Protocol (HTTP) Field Name Registry
+                                   Update
+
+7.  References
+
+7.1.  Normative References
+
+   [DIGEST-FIELDS]
+              Polli, R. and L. Pardue, "Digest Fields", RFC 9530,
+              DOI 10.17487/RFC9530, February 2024,
+              <https://www.rfc-editor.org/rfc/rfc9530>.
+
+   [HTTP]     Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
+
+   [PATCH]    Dusseault, L. and J. Snell, "PATCH Method for HTTP",
+              RFC 5789, DOI 10.17487/RFC5789, March 2010,
+              <https://www.rfc-editor.org/rfc/rfc5789>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [STRUCTURED-FIELDS]
+              Nottingham, M. and P. Kamp, "Structured Field Values for
+              HTTP", RFC 9651, DOI 10.17487/RFC9651, September 2024,
+              <https://www.rfc-editor.org/rfc/rfc9651>.
+
+   [UNENC-DIGEST]
+              Pardue, L. and M. West, "HTTP Unencoded Digest", Work in
+              Progress, Internet-Draft, draft-ietf-httpbis-unencoded-
+              digest-05, 17 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-
+              unencoded-digest-05>.
+
+7.2.  Informative References
+
+   [FOLDING]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
+              "Handling Long Lines in Content of Internet-Drafts and
+              RFCs", RFC 8792, DOI 10.17487/RFC8792, June 2020,
+              <https://www.rfc-editor.org/rfc/rfc8792>.
+
+Example of Patched-Digest Usage
+
+   This section contains a non-normative example of Patched-Digest usage
+   for a hypothetical PATCH request.  A resource located at
+   https://www.example.com/file.txt is a plaintext file containing the
+   string: "An unexceptional string" followed by a line feed character
+   (0xA).
+
+   A client could send a HEAD request to gather information about the
+   status of the resource, including its integrity preference for the
+   response:
+
+   HEAD /file.txt HTTP/1.1
+   Host: www.example.com
+   Want-Unencoded-Digest: sha-256=1
+
+   The server could provide a response the contains both an ETag and an
+   Unencoded-Digest.  It is also assumed that the client and server
+   understand this resource can be patched (via an out-of-band signal)
+   and so the server returns a Want-Patched-Digest:
+
+   HTTP/1.1 200 Ok
+   Content-Type: text/plain
+   ETag: "123-a"
+   Unencoded-Digest: sha-256=:5Bv3NIx05BPnh0jMph6v1RJ5Q7kl9LKMtQxmvc9+Z7Y=:
+   Want-Patched-Digest: sha-256=1
+
+   The client could make a conditional request to patch the resource and
+   provide a Patched-Digest.  In this hypothetical example, the patch
+   document is applied by appending it to the resource, the document
+   value is the string: "can become magic" followed by a line feed
+   character (0xA).
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "123-a"
+   Content-Length: 17
+   Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+   can become magic
+
+   The server applies the patch document and confirms the result matches
+   the Patched-Digest value, then returns a success message with a new
+   ETag.
+
+   HTTP/1.1 204 No Content
+   Content-Location: /file.txt
+   Content-Type: text/plain
+   ETag: "123-b"
+
+   If the client attempts to patch again with a mismatching Patched-
+   Digest:
+
+   PATCH /file.txt HTTP/1.1
+   Host: www.example.com
+   Content-Type: application/example
+   If-Match: "123-b"
+   Content-Length: 17
+   Patched-Digest: sha-256=:aeO2Iouoh/si+rSbwS7Xvivy00Qkkh4L6Jix3BEZ5ic=:
+
+   can become magic
+
+   even though the ETag precondition passes, the server is able to
+   detect a problem with the patch operation and return an error
+   response:
+
+   HTTP/1.1 400 Bad Request
+   Content-Type: text/plain
+
+   [description of error]
+
+Acknowledgments
+
+   The PATCH integrity capability gap was identified by a discussion
+   with Grant Gryczan.  Roberto Polli provided a reminder that the topic
+   was touched on during RFC 9530 development, and provided some early
+   technical input related to the design in this document.
+
+Author's Address
+
+   Lucas Pardue
+   Email: lucas@lucaspardue.com
