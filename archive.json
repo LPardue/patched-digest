@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-26T03:35:23.539746+00:00",
+  "timestamp": "2026-07-28T03:14:40.516880+00:00",
   "repo": "LPardue/patched-digest",
   "labels": [
     {
@@ -49,6 +49,23 @@
       "color": "ffffff"
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "number": 1,
+      "id": "I_kwDOTa9fTc8AAAABKODTAA",
+      "title": "Normalisation considerations",
+      "url": "https://github.com/LPardue/patched-digest/issues/1",
+      "state": "OPEN",
+      "author": "LPardue",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "@acconut made the following insightful comment on the mailing list, this is something the doc should address somehow\n\n> One caveat might be the issue of normalization. When the client wants to include the Patched-Digest header field, it has to know the exact byte values for the patched representation. This might not be possible in all cases, for example, when patching a JSON document using JSON Patch (RFC 6902). Depending on the handling of whitespace and property ordering, the patch could produce multiple valid representations. Unless the client is somehow aware of how exactly the server applies a PATCH, it might be difficult to anticipate the correct Patched-Digest. Normalization could help here, but it's not always defined.\n\n> Now, I don't think there is much you can do in this document in that regard other than stating this potential issue and encouraging authors of future content types for patch documents to take this into consideration.\n\n",
+      "createdAt": "2026-07-26T13:35:55Z",
+      "updatedAt": "2026-07-26T13:35:55Z",
+      "closedAt": null,
+      "comments": []
+    }
+  ],
   "pulls": []
 }
